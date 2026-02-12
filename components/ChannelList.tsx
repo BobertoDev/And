@@ -6,6 +6,7 @@ interface ChannelListProps {
   server: Server;
   activeChannelId: string | null;
   currentUser: User;
+  channelUsers: Array<{ userId: string; username: string; avatar: string }>;
   onSelectChannel: (id: string) => void;
   isMuted: boolean;
   toggleMute: () => void;
@@ -19,6 +20,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   server,
   activeChannelId,
   currentUser,
+  channelUsers,
   onSelectChannel,
   isMuted,
   toggleMute,
@@ -120,14 +122,21 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                   {/* Simple User List in Voice */}
                   {isActive && (
                       <div className="ml-8 mt-1 mb-2 space-y-1">
-                          <div className="flex items-center space-x-2">
-                              <img src={currentUser.avatar} className="w-6 h-6 rounded-full border border-discord-dark" />
-                              <span className="text-sm text-white font-medium truncate">{currentUser.username}</span>
-                              <div className="flex space-x-1">
-                                {isMuted && <MicOff size={12} className="text-discord-red" />}
-                                {isDeafened && <VolumeX size={12} className="text-discord-red" />}
+                          {channelUsers.map(user => {
+                            const isCurrentUser = user.userId === currentUser.id;
+                            return (
+                              <div key={user.userId} className="flex items-center space-x-2">
+                                  <img src={user.avatar} className="w-6 h-6 rounded-full border border-discord-dark" />
+                                  <span className="text-sm text-white font-medium truncate">{user.username}</span>
+                                  {isCurrentUser && (
+                                    <div className="flex space-x-1">
+                                      {isMuted && <MicOff size={12} className="text-discord-red" />}
+                                      {isDeafened && <VolumeX size={12} className="text-discord-red" />}
+                                    </div>
+                                  )}
                               </div>
-                          </div>
+                            );
+                          })}
                       </div>
                   )}
                 </div>

@@ -380,10 +380,11 @@ function App() {
       />
 
       {activeServer ? (
-          <ChannelList 
-             server={activeServer} 
+          <ChannelList
+             server={activeServer}
              activeChannelId={activeChannelId}
              currentUser={user}
+             channelUsers={channelUsers}
              onSelectChannel={(id) => {
                  const ch = activeServer.channels.find(c => c.id === id);
                  setActiveChannelId(id);

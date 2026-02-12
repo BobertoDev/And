@@ -401,6 +401,95 @@ export const subscribeToServerMembers = (
   return channel;
 };
 
+export const joinChannelPresence = async (channelId: string, userId: string) => {
+  const { error } = await supabase
+    .from('channel_presence')
+    .upsert({
+      channel_id: channelId,
+      user_id: userId,
+      last_seen_at: new Date().toISOString()
+    }, {
+      onConflict: 'channel_id,user_id'
+    });
+
+  if (error) throw error;
+};
+
+export const leaveChannelPresence = async (channelId: string, userId: string) => {
+  const { error } = await supabase
+    .from('channel_presence')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+};
+
+export const getChannelPresence = async (channelId: string) => {
+  const { data, error } = await supabase
+    .from('channel_presence')
+    .select(`
+      user_id,
+      users:user_id (username, avatar)
+    `)
+    .eq('channel_id', channelId);
+
+  if (error) throw error;
+
+  return data?.map(p => ({
+    userId: p.user_id,
+    username: (p.users as any)?.username || 'Unknown',
+    avatar: (p.users as any)?.avatar || ''
+  })) || [];
+};
+
+export const subscribeToChannelPresence = (
+  channelId: string,
+  onPresenceChange: (userId: string, joined: boolean, userData?: { username: string; avatar: string }) => void
+): RealtimeChannel => {
+  const channel = supabase
+    .channel(`channel-presence-${channelId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'channel_presence',
+        filter: `channel_id=eq.${channelId}`
+      },
+      async (payload) => {
+        const presence = payload.new as any;
+        const { data: userData } = await supabase
+          .from('users')
+          .select('username, avatar')
+          .eq('id', presence.user_id)
+          .maybeSingle();
+
+        onPresenceChange(
+          presence.user_id,
+          true,
+          userData || undefined
+        );
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'channel_presence',
+        filter: `channel_id=eq.${channelId}`
+      },
+      (payload) => {
+        const presence = payload.old as any;
+        onPresenceChange(presence.user_id, false);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
 export const updateServerDetails = async (serverId: string, updates: Partial<SupabaseServer>) => {
   const { data, error } = await supabase
     .from('servers')

@@ -5,6 +5,7 @@ import { User, Channel } from '../types';
 interface VoiceStageProps {
     channel: Channel;
     currentUser: User;
+    channelUsers: Array<{ userId: string; username: string; avatar: string }>;
     onLeave: () => void;
     isMuted: boolean;
     toggleMute: () => void;
@@ -15,9 +16,10 @@ interface VoiceStageProps {
     outputVolume: number;
 }
 
-export const VoiceStage: React.FC<VoiceStageProps> = ({ 
-    channel, 
-    currentUser, 
+export const VoiceStage: React.FC<VoiceStageProps> = ({
+    channel,
+    currentUser,
+    channelUsers,
     onLeave,
     isMuted,
     toggleMute,
@@ -244,7 +246,6 @@ export const VoiceStage: React.FC<VoiceStageProps> = ({
                     `}>
                         <div className="w-24 h-24 rounded-full overflow-hidden mb-4 relative">
                             <img src={currentUser.avatar} alt="Me" className="w-full h-full object-cover" />
-                            {/* Status Overlay */}
                             {(isMuted || error || isDeafened) && (
                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                     {isDeafened ? (
@@ -261,17 +262,37 @@ export const VoiceStage: React.FC<VoiceStageProps> = ({
                         {screenStream && <span className="text-discord-blurple text-[10px] font-bold mt-1 uppercase">Streaming</span>}
                     </div>
 
-                    {/* Dummy Friend 1 (For Demo) */}
-                    <div className="relative w-48 h-48 rounded-2xl bg-discord-dark border-2 border-transparent flex flex-col items-center justify-center opacity-50">
-                        <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-gray-600 relative">
-                            {isDeafened && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                    <div className="text-white text-xs font-bold px-2 text-center">You are deafened</div>
+                    {/* Other Users in Channel */}
+                    {channelUsers
+                        .filter(u => u.userId !== currentUser.id)
+                        .map(user => (
+                            <div key={user.userId} className="relative w-48 h-48 rounded-2xl bg-discord-dark border-2 border-transparent flex flex-col items-center justify-center">
+                                <div className="w-24 h-24 rounded-full overflow-hidden mb-4 relative">
+                                    <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                                    {isDeafened && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <VolumeX className="text-red-500 w-10 h-10" />
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                                <span className="text-white font-bold text-lg">{user.username}</span>
+                            </div>
+                        ))
+                    }
+
+                    {/* Waiting message if no other users */}
+                    {channelUsers.filter(u => u.userId !== currentUser.id).length === 0 && (
+                        <div className="relative w-48 h-48 rounded-2xl bg-discord-dark border-2 border-transparent flex flex-col items-center justify-center opacity-50">
+                            <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-gray-600 relative">
+                                {isDeafened && (
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                        <div className="text-white text-xs font-bold px-2 text-center">You are deafened</div>
+                                    </div>
+                                )}
+                            </div>
+                            <span className="text-discord-textMuted font-bold">Waiting for friends...</span>
                         </div>
-                        <span className="text-discord-textMuted font-bold">Waiting for friends...</span>
-                    </div>
+                    )}
                 </div>
 
             </div>

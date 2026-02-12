@@ -19,7 +19,11 @@ import {
   unsubscribeFromChannel,
   joinServer as joinServerInDB,
   findServerByName,
-  subscribeToServerMembers
+  subscribeToServerMembers,
+  joinChannelPresence,
+  leaveChannelPresence,
+  getChannelPresence,
+  subscribeToChannelPresence
 } from './services/supabase';
 
 function App() {
@@ -45,6 +49,9 @@ function App() {
 
   const realtimeChannelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const realtimeServerMembersRef = useRef<Map<string, RealtimeChannel>>(new Map());
+  const realtimeChannelPresenceRef = useRef<Map<string, RealtimeChannel>>(new Map());
+
+  const [channelUsers, setChannelUsers] = useState<Array<{ userId: string; username: string; avatar: string }>>([]);
 
   const loadUserServers = async (userId: string) => {
     try {
@@ -169,7 +176,58 @@ function App() {
         realtimeServerMembersRef.current.delete(activeServerId);
       }
     };
-  }, [activeServerId]); 
+  }, [activeServerId]);
+
+  useEffect(() => {
+    if (!activeChannelId || !user) return;
+
+    const setupPresence = async () => {
+      try {
+        console.log(`Joining channel presence: ${activeChannelId}`);
+        await joinChannelPresence(activeChannelId, user.id);
+
+        const existingUsers = await getChannelPresence(activeChannelId);
+        console.log('Existing users in channel:', existingUsers);
+        setChannelUsers(existingUsers);
+
+        const existingPresenceChannel = realtimeChannelPresenceRef.current.get(activeChannelId);
+        if (!existingPresenceChannel) {
+          const presenceChannel = subscribeToChannelPresence(
+            activeChannelId,
+            (userId, joined, userData) => {
+              console.log(`User ${userId} ${joined ? 'joined' : 'left'} channel`);
+              setChannelUsers(prev => {
+                if (joined && userData) {
+                  if (prev.find(u => u.userId === userId)) return prev;
+                  return [...prev, { userId, username: userData.username, avatar: userData.avatar }];
+                } else {
+                  return prev.filter(u => u.userId !== userId);
+                }
+              });
+            }
+          );
+          realtimeChannelPresenceRef.current.set(activeChannelId, presenceChannel);
+        }
+      } catch (error) {
+        console.error('Failed to setup channel presence:', error);
+      }
+    };
+
+    setupPresence();
+
+    return () => {
+      if (user && activeChannelId) {
+        console.log(`Leaving channel presence: ${activeChannelId}`);
+        leaveChannelPresence(activeChannelId, user.id).catch(console.error);
+
+        const presenceChannel = realtimeChannelPresenceRef.current.get(activeChannelId);
+        if (presenceChannel) {
+          unsubscribeFromChannel(presenceChannel);
+          realtimeChannelPresenceRef.current.delete(activeChannelId);
+        }
+      }
+    };
+  }, [activeChannelId, user]);
 
   const handleLogin = async (newUser: User) => {
     try {
@@ -357,9 +415,10 @@ function App() {
          )}
          
          {activeChannel && isVoiceConnected && activeChannel.type === 'voice' && (
-             <VoiceStage 
+             <VoiceStage
                 channel={activeChannel}
                 currentUser={user}
+                channelUsers={channelUsers}
                 onLeave={() => {
                    setIsVoiceConnected(false);
                    const txt = activeServer?.channels.find(c => c.type === 'text');

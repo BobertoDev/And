@@ -1,0 +1,9 @@
+{
+  "name": "Discordia",
+  "description": "A feature-rich communication platform allowing users to create servers, text with friends, and join voice channels. Includes built-in Gemini AI integration.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "display-capture"
+  ]
+}

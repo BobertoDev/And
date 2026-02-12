@@ -127,6 +127,67 @@ export const createServer = async (server: Server, userId: string) => {
   return serverData;
 };
 
+export const findServerByName = async (serverName: string): Promise<Server | null> => {
+  const { data: serverData, error: serverError } = await supabase
+    .from('servers')
+    .select('*')
+    .eq('name', serverName)
+    .maybeSingle();
+
+  if (serverError) throw serverError;
+  if (!serverData) return null;
+
+  const { data: channelsData } = await supabase
+    .from('channels')
+    .select('*')
+    .eq('server_id', serverData.id)
+    .order('position');
+
+  const { data: rolesData } = await supabase
+    .from('roles')
+    .select('*')
+    .eq('server_id', serverData.id)
+    .order('position');
+
+  const { data: membersData } = await supabase
+    .from('server_members')
+    .select('*, users(username, avatar)')
+    .eq('server_id', serverData.id);
+
+  const channels: Channel[] = (channelsData || []).map(c => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    messages: []
+  }));
+
+  const roles = (rolesData || []).map(r => ({
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    permissions: r.permissions,
+    position: r.position
+  }));
+
+  const members: ServerMember[] = (membersData || []).map(m => ({
+    userId: m.user_id,
+    username: m.users?.username || 'Unknown',
+    avatar: m.users?.avatar || '',
+    roles: m.roles
+  }));
+
+  return {
+    id: serverData.id,
+    name: serverData.name,
+    icon: serverData.icon,
+    password: serverData.password,
+    ownerId: serverData.owner_id,
+    channels,
+    roles,
+    members
+  };
+};
+
 export const joinServer = async (serverId: string, userId: string, roles: string[] = ['r-everyone']) => {
   const { data, error } = await supabase
     .from('server_members')

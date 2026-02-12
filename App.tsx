@@ -17,7 +17,8 @@ import {
   sendMessage as sendMessageToDB,
   subscribeToChannel,
   unsubscribeFromChannel,
-  joinServer as joinServerInDB
+  joinServer as joinServerInDB,
+  findServerByName
 } from './services/supabase';
 
 function App() {
@@ -193,28 +194,29 @@ function App() {
   const handleJoinServer = async ({ name, password }: any) => {
     if (!user) return;
 
-    const target = servers.find(s => s.name === name);
-    if (target) {
+    try {
+      const target = await findServerByName(name);
+
+      if (!target) {
+        alert("Server not found.");
+        return;
+      }
+
       if (target.password && target.password !== password) {
         alert("Incorrect password!");
         return;
       }
 
       if (!target.members.find(m => m.userId === user.id)) {
-        try {
-          await joinServerInDB(target.id, user.id);
-          await loadUserServers(user.id);
-        } catch (error) {
-          console.error("Failed to join server:", error);
-          alert("Failed to join server. Please try again.");
-          return;
-        }
+        await joinServerInDB(target.id, user.id);
+        await loadUserServers(user.id);
       }
 
       setActiveServerId(target.id);
       setActiveChannelId(target.channels[0].id);
-    } else {
-      alert("Server not found.");
+    } catch (error) {
+      console.error("Failed to join server:", error);
+      alert("Failed to join server. Please try again.");
     }
   };
 

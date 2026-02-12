@@ -18,7 +18,8 @@ import {
   subscribeToChannel,
   unsubscribeFromChannel,
   joinServer as joinServerInDB,
-  findServerByName
+  findServerByName,
+  subscribeToServerMembers
 } from './services/supabase';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
   const [showServerSettingsModal, setShowServerSettingsModal] = useState(false);
 
   const realtimeChannelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
+  const realtimeServerMembersRef = useRef<Map<string, RealtimeChannel>>(new Map());
 
   const loadUserServers = async (userId: string) => {
     try {
@@ -91,10 +93,16 @@ function App() {
   useEffect(() => {
     if (!activeChannelId) return;
 
+    console.log(`Subscribing to channel: ${activeChannelId}`);
+
     const existingChannel = realtimeChannelsRef.current.get(activeChannelId);
-    if (existingChannel) return;
+    if (existingChannel) {
+      console.log(`Already subscribed to channel: ${activeChannelId}`);
+      return;
+    }
 
     const channel = subscribeToChannel(activeChannelId, (newMessage) => {
+      console.log('New message received:', newMessage);
       setServers(prevServers => {
         return prevServers.map(server => {
           const channelExists = server.channels.find(c => c.id === newMessage.channelId);
@@ -117,12 +125,51 @@ function App() {
     realtimeChannelsRef.current.set(activeChannelId, channel);
 
     return () => {
+      console.log(`Unsubscribing from channel: ${activeChannelId}`);
       if (channel) {
         unsubscribeFromChannel(channel);
         realtimeChannelsRef.current.delete(activeChannelId);
       }
     };
-  }, [activeChannelId]); 
+  }, [activeChannelId]);
+
+  useEffect(() => {
+    if (!activeServerId) return;
+
+    console.log(`Subscribing to server members: ${activeServerId}`);
+
+    const existingChannel = realtimeServerMembersRef.current.get(activeServerId);
+    if (existingChannel) {
+      console.log(`Already subscribed to server members: ${activeServerId}`);
+      return;
+    }
+
+    const channel = subscribeToServerMembers(activeServerId, (newMember) => {
+      console.log('New member joined:', newMember);
+      setServers(prevServers => {
+        return prevServers.map(server => {
+          if (server.id !== activeServerId) return server;
+
+          if (server.members.find(m => m.userId === newMember.userId)) return server;
+
+          return {
+            ...server,
+            members: [...server.members, newMember]
+          };
+        });
+      });
+    });
+
+    realtimeServerMembersRef.current.set(activeServerId, channel);
+
+    return () => {
+      console.log(`Unsubscribing from server members: ${activeServerId}`);
+      if (channel) {
+        unsubscribeFromChannel(channel);
+        realtimeServerMembersRef.current.delete(activeServerId);
+      }
+    };
+  }, [activeServerId]); 
 
   const handleLogin = async (newUser: User) => {
     try {

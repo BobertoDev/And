@@ -363,6 +363,44 @@ export const unsubscribeFromChannel = (channel: RealtimeChannel) => {
   supabase.removeChannel(channel);
 };
 
+export const subscribeToServerMembers = (
+  serverId: string,
+  onMemberJoin: (member: ServerMember) => void
+): RealtimeChannel => {
+  const channel = supabase
+    .channel(`server-members-${serverId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'server_members',
+        filter: `server_id=eq.${serverId}`
+      },
+      async (payload) => {
+        const newMember = payload.new as SupabaseServerMember;
+
+        const { data: userData } = await supabase
+          .from('users')
+          .select('username, avatar')
+          .eq('id', newMember.user_id)
+          .maybeSingle();
+
+        const member: ServerMember = {
+          userId: newMember.user_id,
+          username: userData?.username || 'Unknown',
+          avatar: userData?.avatar || '',
+          roles: newMember.roles
+        };
+
+        onMemberJoin(member);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
 export const updateServerDetails = async (serverId: string, updates: Partial<SupabaseServer>) => {
   const { data, error } = await supabase
     .from('servers')

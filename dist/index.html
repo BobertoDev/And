@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Discordia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              discord: {
+                dark: '#313338',
+                light: '#2b2d31',
+                darker: '#1e1f22',
+                sidebar: '#1e1f22', // Very dark for server list
+                active: '#3f4147',
+                blurple: '#5865F2',
+                blurpleHover: '#4752C4',
+                green: '#23a559',
+                red: '#da373c',
+                text: '#dbdee1',
+                textMuted: '#949ba4',
+                channel: '#2b2d31',
+                divider: '#1e1f22'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=gg+sans:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Noto Sans', sans-serif;
+        background-color: #313338;
+        color: #dbdee1;
+        overflow: hidden;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background-color: #2b2d31;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #1a1b1e;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background-color: #2b2d31;
+      }
+    </style>
+
+<link rel="stylesheet" href="/index.css">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "uuid": "https://esm.sh/uuid@^13.0.0",
+    "idb": "https://esm.sh/idb@8.0.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-CeIrcb3I.js"></script>
+</head>
+  <body>
+    <div id="root"></div>
+</body>
+</html>
